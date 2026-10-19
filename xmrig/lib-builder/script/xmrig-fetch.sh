@@ -4,20 +4,14 @@ set -e
 
 source script/env.sh
 
-cd $EXTERNAL_LIBS_BUILD_ROOT
+cd "$EXTERNAL_LIBS_BUILD_ROOT"
 
-version="v6.17.0"
+version="v6.26.0"
 
 if [ ! -d "xmrig" ]; then
-  git clone https://github.com/xmrig/xmrig.git -b ${version}
-  cd ..
-  cd ..
-  patch build/src/xmrig/src/net/strategies/DonateStrategy.cpp ./xmrig.patch --force
+  git clone --depth 1 https://github.com/xmrig/xmrig.git -b "${version}"
 else
   cd xmrig
-  git checkout ${version}
-  cd ..
-  cd ..
-  cd ..
-  patch build/src/xmrig/src/net/strategies/DonateStrategy.cpp ./xmrig.patch --force
+  git fetch --depth 1 origin "${version}"
+  git checkout "${version}"
 fi
