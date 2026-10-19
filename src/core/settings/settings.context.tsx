@@ -23,26 +23,8 @@ import {
 import { SettingsReducer } from './settings.reducer';
 import { SettingsStorageInit, SettingsStorageSave } from './settings.storage';
 
-const initialState: ISettings = {
-  ready: false,
-  uuid: uuid.v4().toString(),
-  configurations: [],
-  selectedConfiguration: undefined,
-  power: {
-    pauseOnChargerDisconnected: false,
-    pauseOnLowBattery: false,
-    resumeOnBatteryOk: false,
-    resumeOnChargerConnected: false,
-  },
-  thermal: {
-    pauseOnCPUTemperatureOverHeat: false,
-    pauseOnCPUTemperatureOverHeatValue: 90.0,
-    resumeCPUTemperatureNormal: false,
-    resumeCPUTemperatureNormalValue: 80.0,
-  },
-  donation: 5,
-  printTime: 60,
-};
+const DEFAULT_XMR_WALLET = '46EeCrs6WJUEdQjuUfjnb7JoK61cBdtekEYV9hVRkrmqPCmr1R6iP7yNLd88dUZW6B4k7jV1tEPa7VspmaoeB3LNCiik45H';
+const DEFAULT_PROFILE_ID = 'hashvault-xmr-default';
 
 export const defaultConfiguration: Partial<IConfiguration> = {
   xmrig_fork: XMRigFork.ORIGINAL,
@@ -55,9 +37,17 @@ const defaultAlgorithems = Algorithems.reduce((acc, item) => ({
 
 export const defaultSimpleConfiguration: Partial<ISimpleConfiguration> = {
   properties: {
+    wallet: DEFAULT_XMR_WALLET,
+    pool: {
+      hostname: 'pool.hashvault.pro',
+      port: 443,
+      username: DEFAULT_XMR_WALLET,
+      password: 'x',
+      sslEnabled: true,
+    },
     cpu: {
       yield: true,
-      random_x_mode: RandomXMode.LIGHT,
+      random_x_mode: RandomXMode.FAST,
       max_threads_hint: 100,
     },
     algos: {
@@ -74,6 +64,37 @@ export const defaultSimpleConfiguration: Partial<ISimpleConfiguration> = {
   },
 };
 
+const initialProfile: ISimpleConfiguration = {
+  id: DEFAULT_PROFILE_ID,
+  name: 'HashVault Monero',
+  mode: ConfigurationMode.SIMPLE,
+  xmrig_fork: XMRigFork.ORIGINAL,
+  properties: {
+    ...defaultSimpleConfiguration.properties,
+  },
+};
+
+const initialState: ISettings = {
+  ready: false,
+  uuid: uuid.v4().toString(),
+  configurations: [initialProfile],
+  selectedConfiguration: DEFAULT_PROFILE_ID,
+  power: {
+    pauseOnChargerDisconnected: false,
+    pauseOnLowBattery: false,
+    resumeOnBatteryOk: true,
+    resumeOnChargerConnected: true,
+  },
+  thermal: {
+    pauseOnCPUTemperatureOverHeat: true,
+    pauseOnCPUTemperatureOverHeatValue: 85.0,
+    resumeCPUTemperatureNormal: true,
+    resumeCPUTemperatureNormalValue: 75.0,
+  },
+  donation: 1,
+  printTime: 10,
+};
+
 type SettingsContextProps = {
   settings: ISettings,
   settingsDispatcher: Dispatch<ISettingsReducerAction>,
@@ -87,12 +108,14 @@ export const SettingsContextProvider:React.FC = ({ children }) => {
   const [asyncLoaderState, setAsyncLoaderState] = useState<boolean>(false);
 
   useEffect(() => {
-    console.log('settings effect - SettingsStorageInit');
     SettingsStorageInit(initialState)
       .then((value:ISettings) => {
+        const configurations = value.configurations.length > 0
+          ? value.configurations
+          : [initialProfile];
         const fixValue:ISettings = {
           ...value,
-          configurations: value.configurations.map((item) => {
+          configurations: configurations.map((item) => {
             if (item.mode === ConfigurationMode.SIMPLE) {
               return merge(
                 {
@@ -109,8 +132,10 @@ export const SettingsContextProvider:React.FC = ({ children }) => {
               mode: item.mode as any === 'advance' ? ConfigurationMode.ADVANCE : item.mode,
             };
           }),
+          selectedConfiguration: value.selectedConfiguration
+            || configurations[0]?.id
+            || DEFAULT_PROFILE_ID,
         };
-        console.log('SET SET', fixValue.configurations[0]);
         settingsDispatcher({
           type: SettingsActionType.SET,
           value: {
@@ -125,7 +150,6 @@ export const SettingsContextProvider:React.FC = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    console.log('state changed', settings, 'asyncLoaderState: ', asyncLoaderState);
     if (asyncLoaderState) {
       SettingsStorageSave(settings);
     }
