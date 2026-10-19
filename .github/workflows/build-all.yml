@@ -42,8 +42,6 @@ jobs:
             "ndk;21.4.7075529"
 
       - name: Install JavaScript dependencies
-        env:
-          NODE_OPTIONS: --openssl-legacy-provider
         run: yarn install --frozen-lockfile
 
       - name: Build XMRig 6.26.0 ARM64 with TLS
@@ -60,8 +58,6 @@ jobs:
           sha256sum android/app/src/main/jniLibs/arm64-v8a/libxmrig.so
 
       - name: Build installable ARM64 APK
-        env:
-          NODE_OPTIONS: --openssl-legacy-provider
         shell: bash
         run: |
           set -euo pipefail
