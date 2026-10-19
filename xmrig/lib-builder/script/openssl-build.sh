@@ -1,52 +1,26 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 source script/env.sh
 
-cd $EXTERNAL_LIBS_BUILD_ROOT/openssl
-#mkdir build && cd build
+cd "$EXTERNAL_LIBS_BUILD_ROOT/openssl"
 
-CC=clang
-PATH=$TOOLCHAINS_PATH/bin:$PATH
+export PATH="$TOOLCHAINS_PATH/bin:$PATH"
+export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/$NDK_VERSION"
 ANDROID_API=29
-ANDROID_PLATFORM=android-29
+ANDROID_ABI="arm64-v8a"
+TARGET_DIR="$EXTERNAL_LIBS_ROOT/openssl/$ANDROID_ABI"
 
-archs=(arm arm64 x86 x86_64)
-for arch in ${archs[@]}; do
-    case ${arch} in
-        "arm")
-            architecture=android-arm
-            ANDROID_ABI="armeabi-v7a"
-            ;;
-        "arm64")
-            architecture=android-arm64
-            ANDROID_ABI="arm64-v8a"
-            ;;
-        "x86")
-            architecture=android-x86
-            ANDROID_ABI="x86"
-            ;;
-        "x86_64")
-            architecture=android-x86_64
-            ANDROID_ABI="x86_64"
-            ;;
-        *)
-            exit 16
-            ;;
-    esac
+mkdir -p "$TARGET_DIR"
 
-    TARGET_DIR=$EXTERNAL_LIBS_ROOT/openssl/$ANDROID_ABI
+./Configure android-arm64 \
+  -D__ANDROID_API__=$ANDROID_API \
+  --prefix="$TARGET_DIR" \
+  --openssldir="$TARGET_DIR/ssl" \
+  no-shared no-tests no-zlib no-comp no-dgram no-filenames no-cms
 
-    mkdir -p $TARGET_DIR
-    echo "building for ${arch}"
-
-    ./Configure ${architecture} -D__ANDROID_API__=$ANDROID_API --prefix=${TARGET_DIR} -no-shared -no-asm -no-zlib -no-comp -no-dgram -no-filenames -no-cms
-
-    make -j 4
-    make install
-    make clean
-
-done
+make -j4
+make install_sw
 
 exit 0
