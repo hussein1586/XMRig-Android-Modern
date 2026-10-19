@@ -1,38 +1,20 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 source script/env.sh
 
-archs=(arm arm64 x86 x86_64)
+ROOT_DIR="$(cd ../.. && pwd)"
+XARCH="arm64-v8a"
+XMRIG_BIN="$EXTERNAL_LIBS_BUILD_ROOT/xmrig/build/$XARCH/xmrig"
+OUT_DIR="$ROOT_DIR/android/app/src/main/jniLibs/$XARCH"
 
-for arch in ${archs[@]}; do
-    case ${arch} in
-        "arm")
-			xarch="armeabi-v7a"
-			;;
-        "arm64")
-			xarch="arm64-v8a"
-            ;;
-        "x86")
-			xarch="x86"
-            ;;
-        "x86_64")
-			xarch="x86_64"
-            ;;
-        *)
-			exit 16
-            ;;
-    esac
+rm -rf "$ROOT_DIR/android/app/src/main/jniLibs"
+mkdir -p "$OUT_DIR"
 
-	ROOT_DIR=`pwd`/../../
-	XMRIG_DIR=`pwd`/build/src/xmrig/build/$xarch
-    XMRIG_MO_DIR=`pwd`/build/src/xmrig-mo/build/$xarch
+test -x "$XMRIG_BIN"
+cp "$XMRIG_BIN" "$OUT_DIR/libxmrig.so"
+chmod 0755 "$OUT_DIR/libxmrig.so"
+sha256sum "$OUT_DIR/libxmrig.so"
 
-	rm -Rf $ROOT_DIR/android/app/src/main/jniLibs/$xarch/*
-	cp $XMRIG_DIR/xmrig $ROOT_DIR/android/app/src/main/jniLibs/$xarch/libxmrig.so
-    cp $XMRIG_MO_DIR/xmrig $ROOT_DIR/android/app/src/main/jniLibs/$xarch/libxmrig-mo.so
-
-done
 exit 0
-
